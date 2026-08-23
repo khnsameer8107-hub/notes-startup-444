@@ -1,0 +1,130 @@
+{
+  "app_name": "Notes",
+  "personality": "2 Material You / Expressive (Productivity Variant)",
+  "personality_one_liner": "A premium, tactile, and responsive offline workspace where warm tones and adaptive surfaces prioritize the user's content.",
+  "color": {
+    "surface": "#FAF9F7",
+    "onSurface": "#181715",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#181715",
+    "surfaceTertiary": "#F0EEEB",
+    "onSurfaceTertiary": "#454340",
+    "surfaceInverse": "#181715",
+    "onSurfaceInverse": "#FAF9F7",
+    "brand": "#E27429",
+    "brandPrimary": "#E27429",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#D96A20",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#FBE9DE",
+    "onBrandTertiary": "#7A350E",
+    "success": "#225937",
+    "onSuccess": "#FFFFFF",
+    "warning": "#8A6116",
+    "onWarning": "#FFFFFF",
+    "error": "#962D24",
+    "onError": "#FFFFFF",
+    "info": "#3B3936",
+    "onInfo": "#FFFFFF",
+    "border": "#E5E3E0",
+    "borderStrong": "#C2C0BD",
+    "divider": "#E5E3E0"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Geist",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Maintain generous breathing room around text and UI components. Use md (12pt) padding inside note cards, and lg (16pt) for screen edges.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 8,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "stack_only",
+  "icon_set": "MaterialCommunityIcons",
+  "glassmorphism": {
+    "enabled": "false",
+    "do's": [],
+    "dont's": [
+      "No glass UI. The app relies on tonal surfaces and adaptive cards (Material You style) rather than blur, ensuring fast offline Android performance."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Primary workspace displaying the staggered masonry grid of notes, search, and quick creation tools.",
+      "states": {
+        "loading": "Shimmer skeleton matching the masonry grid layout.",
+        "empty": "A warm, abstract minimal illustration of a notebook/desk, paired with a welcoming message ('Your workspace is clear') and a CTA pointing to the FAB.",
+        "error": "Not applicable (100% Offline App). Any database read errors should display a polite 'Unable to load notes' message with a 'Retry' button."
+      },
+      "layout": "1. Top Bar: App logo (left), Checklist shortcut + Settings icon (right). 2. Search Bar: Large, fully rounded (pill), sticky beneath the top bar. 3. Filter Chips: Horizontal scrolling row (All, Favorites, Pinned, Archived, Trash, Folders). 4. Content: 2-column masonry staggered grid (`LazyVerticalStaggeredGrid` equivalent). Cards have `lg` radius, 1pt border, no shadow. 5. FAB: Bottom-right, `pill` shape, floating above the grid, opens an expandable menu."
+    },
+    {
+      "name": "Note Editor",
+      "purpose": "Distraction-free canvas for creating text, checklists, drawings, or voice notes.",
+      "states": {
+        "loading": "Instant load, no state needed.",
+        "empty": "Placeholder text ('Title' and 'Start writing...').",
+        "error": "Failed to save alert."
+      },
+      "layout": "1. Header: Back button, Note Color Picker icon, Pin, Favorite, Archive, 3-dot menu. 2. Content: Scrollable full-screen text editor (`flex: 1`). 3. Toolbar: Fixed at the bottom above the keyboard, containing text formatting (Bold, Italic, List, Checkbox, Image attachment, Drawing). Title is large display typography; body is highly readable serif/sans."
+    },
+    {
+      "name": "Settings",
+      "purpose": "App configuration, backup, and security preferences.",
+      "states": {
+        "loading": "Instant load.",
+        "empty": "N/A",
+        "error": "N/A"
+      },
+      "layout": "Standard single-column scrollable list. Sections: Appearance (Dark/Light mode), Notes, Security (Biometric lock), Backup & Restore, Storage, About. Use `brandTertiary` tinted icons in rounded squares for each setting row."
+    }
+  ],
+  "images": {
+    "empty_state_illustration": {
+      "url": "https://images.pexels.com/photos/6779407/pexels-photo-6779407.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Minimalist spiral notepad on a clean surface"
+    }
+  },
+  "instructions_to_main_agent": [
+    "NOTE COLORS: The user EXPLICITLY requested specific note colors (Default, Yellow, Green, Blue, Purple, Pink, Orange, Gray). Override the default blue/purple ban for the note card backgrounds ONLY. Use these exact premium hex pairs. LIGHT MODE: Default (surfaceSecondary), Yellow (#FEF9C3), Green (#DCFCE7), Blue (#DBEAFE), Purple (#F3E8FF), Pink (#FCE7F3), Orange (#FFEDD5), Gray (#F3F4F6). DARK MODE: Default (surfaceSecondary), Yellow (#423816), Green (#143C27), Blue (#183354), Purple (#36204F), Pink (#4F1E37), Orange (#4C2915), Gray (#383838).",
+    "DARK MODE COLORS (CORE): surface (#181715), surfaceSecondary (#23221F), surfaceTertiary (#2C2A27), surfaceInverse (#FAF9F7). Text should use #E5E3E0 (onSurface). brandPrimary remains #E27429.",
+    "MASONRY GRID: Implement a 2-column staggered grid. Cards should NOT have fixed heights; they must adapt to the preview content length. Cards have 1pt border (light: #E5E3E0, dark: #33312E) and NO shadow. Cards should scale to 0.97 on press (150ms animation).",
+    "FAB MENU: The main FAB (bottom-right, pill shape, brandPrimary) should expand when tapped to reveal a vertical stack of mini-FABs for Text Note, Checklist, Voice Note, Image Note, and Drawing Note.",
+    "BIOMETRIC LOCK: 100% biometric (fingerprint/face). No PIN fallback. Trigger upon app resume or cold start if enabled in settings.",
+    "FILTER CHIPS: Render chips as pill-shaped (`radius_tokens.pill`). Inactive state: `surfaceSecondary` background with `border`. Active state: `brandTertiary` background with `brandPrimary` border and text.",
+    "OFFLINE ARCHITECTURE: Use a local-first SQLite/WatermelonDB/Realm database. The UI must react instantly via observable queries without spinners.",
+    "BOTTOM SHEETS: Use @gorhom/bottom-sheet for the Note Color picker and Folders/Tags management menus. Apply `lg` border radius to the top corners of the sheet."
+  ]
+}
