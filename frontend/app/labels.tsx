@@ -31,33 +31,55 @@ export default function Labels() {
   const [deleting, setDeleting] = useState<Label | null>(null);
 
   const load = useCallback(() => {
-    listLabels().then(setLabels);
+    listLabels()
+      .then(setLabels)
+      .catch((e) => {
+        console.warn("[Labels] load failed", e);
+        setLabels([]);
+      });
   }, []);
   useFocusEffect(load);
 
   const add = async () => {
     const name = newName.trim();
     if (!name) return;
-    await createLabel(name);
-    setNewName("");
-    load();
-    toast.show("Label created", "success");
+    try {
+      await createLabel(name);
+      setNewName("");
+      load();
+      toast.show("Label created", "success");
+    } catch (e) {
+      console.warn("[Labels] create failed", e);
+      toast.show("Couldn't create label", "error");
+    }
   };
 
   const saveRename = async () => {
     if (!editing) return;
     const name = editName.trim();
-    if (name) await renameLabel(editing.id, name);
-    setEditing(null);
-    load();
+    try {
+      if (name) await renameLabel(editing.id, name);
+      setEditing(null);
+      load();
+    } catch (e) {
+      console.warn("[Labels] rename failed", e);
+      setEditing(null);
+      toast.show("Couldn't rename label", "error");
+    }
   };
 
   const confirmDelete = async () => {
     if (!deleting) return;
-    await deleteLabel(deleting.id);
-    setDeleting(null);
-    load();
-    toast.show("Label deleted", "success");
+    try {
+      await deleteLabel(deleting.id);
+      setDeleting(null);
+      load();
+      toast.show("Label deleted", "success");
+    } catch (e) {
+      console.warn("[Labels] delete failed", e);
+      setDeleting(null);
+      toast.show("Couldn't delete label", "error");
+    }
   };
 
   return (

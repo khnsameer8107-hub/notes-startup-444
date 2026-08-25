@@ -120,12 +120,14 @@ export function ConfirmSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject },
+  backdrop: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   sheet: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 1,
+    elevation: 24,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,

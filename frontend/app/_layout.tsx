@@ -11,6 +11,7 @@ import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AppProvider, useApp } from "@/src/context/AppContext";
 import { ToastProvider } from "@/src/components/Toast";
 import { LockGate } from "@/src/components/LockGate";
+import { ErrorBoundary } from "@/src/components/ErrorBoundary";
 
 // Disable logbox errors etc so that users can see the app
 // and agent works as expected.
@@ -54,9 +55,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          <AppProvider>
-            <ThemedApp />
-          </AppProvider>
+          <ErrorBoundary>
+            <AppProvider>
+              <ThemedApp />
+            </AppProvider>
+          </ErrorBoundary>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

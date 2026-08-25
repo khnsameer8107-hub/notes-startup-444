@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -52,6 +53,8 @@ import {
 import { Attachment, ChecklistItem, NoteType } from "@/src/db/types";
 import { copyIntoStore, readTextFile } from "@/src/lib/files";
 import { exportNotes, ExportFormat } from "@/src/lib/exporter";
+import { captureRef } from "react-native-view-shot";
+import { buildNoteText, shareImageFile, shareNoteAsText } from "@/src/lib/share";
 
 function extFromUri(uri: string, fallback: string): string {
   const m = uri.split("?")[0].split(".").pop();
@@ -112,8 +115,11 @@ export default function Editor() {
   const [labelVisible, setLabelVisible] = useState(false);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [exportVisible, setExportVisible] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
   const [imageMenuVisible, setImageMenuVisible] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
 
   const noteIdRef = useRef<string | null>(null);
   const titleRef = useRef("");
@@ -179,7 +185,10 @@ export default function Editor() {
   useEffect(() => {
     if (!noteId || !loaded) return;
     const t = setTimeout(() => {
-      updateNote(noteId, { title, content });
+      updateNote(noteId, { title, content }).catch((e) => {
+        // Keep the text in state; the next successful write persists it.
+        console.warn("[Editor] autosave failed", e);
+      });
     }, 400);
     return () => clearTimeout(t);
   }, [title, content, noteId, loaded]);
@@ -190,8 +199,12 @@ export default function Editor() {
       const id = noteIdRef.current;
       if (!id) return;
       (async () => {
-        await updateNote(id, { title: titleRef.current, content: contentRef.current });
-        await discardIfEmpty(id);
+        try {
+          await updateNote(id, { title: titleRef.current, content: contentRef.current });
+          await discardIfEmpty(id);
+        } catch (e) {
+          console.warn("[Editor] save-on-exit failed", e);
+        }
         refresh();
       })();
     });
@@ -199,7 +212,12 @@ export default function Editor() {
   }, [navigation, refresh]);
 
   const patch = (fields: any) => {
-    if (noteId) updateNote(noteId, fields);
+    if (noteId) {
+      updateNote(noteId, fields).catch((e) => {
+        console.warn("[Editor] save failed", e);
+        toast.show("Couldn't save change", "error");
+      });
+    }
   };
 
   const togglePin = () => {
@@ -385,6 +403,47 @@ export default function Editor() {
       if (n) await exportNotes([n], fmt);
     } catch {
       toast.show("Export failed", "error");
+    }
+  };
+
+  const noteIsEmpty = () => !buildNoteText({ title, content, type }, items);
+
+  const doShareText = async () => {
+    setShareVisible(false);
+    if (noteIsEmpty()) {
+      toast.show("Nothing to share yet", "info");
+      return;
+    }
+    try {
+      await shareNoteAsText({ title, content, type }, items);
+    } catch (e) {
+      console.warn("[Editor] share text failed", e);
+      toast.show("Couldn't share note", "error");
+    }
+  };
+
+  const doSharePicture = async () => {
+    setShareVisible(false);
+    if (noteIsEmpty()) {
+      toast.show("Nothing to share yet", "info");
+      return;
+    }
+    setSharing(true);
+    try {
+      // Give the offscreen share card a moment to lay out before capturing.
+      await new Promise((r) => setTimeout(r, 80));
+      const uri = await captureRef(shareCardRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const ok = await shareImageFile(uri);
+      if (!ok) toast.show("Sharing isn't available here", "error");
+    } catch (e) {
+      console.warn("[Editor] share picture failed", e);
+      toast.show("Couldn't create image to share", "error");
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -661,6 +720,10 @@ export default function Editor() {
             <Text style={[styles.menuText, { color: c.onSurface }]}>Convert to checklist</Text>
           </Pressable>
         )}
+        <Pressable testID="opt-share" onPress={() => { setMenuVisible(false); setShareVisible(true); }} style={styles.menuRow}>
+          <MaterialCommunityIcons name="share-variant-outline" size={22} color={c.onSurfaceTertiary} />
+          <Text style={[styles.menuText, { color: c.onSurface }]}>Share note</Text>
+        </Pressable>
         <Pressable testID="opt-export" onPress={() => { setMenuVisible(false); setExportVisible(true); }} style={styles.menuRow}>
           <MaterialCommunityIcons name="export-variant" size={22} color={c.onSurfaceTertiary} />
           <Text style={[styles.menuText, { color: c.onSurface }]}>Export</Text>
@@ -680,6 +743,21 @@ export default function Editor() {
         ))}
       </BottomSheet>
 
+      <BottomSheet visible={shareVisible} onClose={() => setShareVisible(false)} title="Share note" testID="editor-share-sheet">
+        <Pressable testID="share-as-text" onPress={doShareText} style={styles.menuRow}>
+          <MaterialCommunityIcons name="text-box-outline" size={22} color={c.brand} />
+          <Text style={[styles.menuText, { color: c.onSurface }]}>Share as text</Text>
+        </Pressable>
+        <Pressable testID="share-as-picture" onPress={doSharePicture} style={styles.menuRow}>
+          <MaterialCommunityIcons name="image-outline" size={22} color={c.brand} />
+          <Text style={[styles.menuText, { color: c.onSurface }]}>Share as picture</Text>
+        </Pressable>
+        <Pressable testID="share-as-markdown" onPress={() => { setShareVisible(false); doExport("md"); }} style={styles.menuRow}>
+          <MaterialCommunityIcons name="language-markdown" size={22} color={c.brand} />
+          <Text style={[styles.menuText, { color: c.onSurface }]}>Export as Markdown</Text>
+        </Pressable>
+      </BottomSheet>
+
       <ConfirmSheet
         visible={confirmDelete}
         title="Move to trash?"
@@ -689,6 +767,57 @@ export default function Editor() {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={deleteNote}
       />
+
+      {sharing && (
+        <View style={styles.sharingOverlay} pointerEvents="auto">
+          <View style={[styles.sharingBox, { backgroundColor: c.surfaceSecondary }]}>
+            <ActivityIndicator color={c.brand} />
+            <Text style={[styles.sharingText, { color: c.onSurface }]}>Preparing image…</Text>
+          </View>
+        </View>
+      )}
+
+
+      {/* Offscreen card rendered only to capture the note as a shareable image. */}
+      <View style={styles.shareCardWrap} pointerEvents="none">
+        <View ref={shareCardRef} collapsable={false} style={[styles.shareCard, { backgroundColor: bg }]}>          <View style={styles.shareCardHeader}>
+            <View style={[styles.shareLogo, { backgroundColor: c.brand }]}>
+              <MaterialCommunityIcons name="notebook" size={16} color={c.onBrand} />
+            </View>
+            <Text style={[styles.shareBrand, { color: c.muted }]}>Notes</Text>
+          </View>
+          {title.trim() ? (
+            <Text style={[styles.shareTitle, { color: c.onSurface }]}>{title.trim()}</Text>
+          ) : null}
+          {type === "checklist"
+            ? items
+                .filter((i) => i.text.trim())
+                .map((i) => (
+                  <View key={i.id} style={styles.shareCheckRow}>
+                    <MaterialCommunityIcons
+                      name={i.isCompleted ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+                      size={18}
+                      color={i.isCompleted ? c.brand : c.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.shareCheckText,
+                        {
+                          color: i.isCompleted ? c.muted : c.onSurface,
+                          textDecorationLine: i.isCompleted ? "line-through" : "none",
+                        },
+                      ]}
+                    >
+                      {i.text.trim()}
+                    </Text>
+                  </View>
+                ))
+            : content.trim()
+              ? <Text style={[styles.shareBody, { color: c.onSurface }]}>{content.trim()}</Text>
+              : null}
+          <Text style={[styles.shareFooter, { color: c.muted }]}>{dayjs(updatedAt).format("MMM D, YYYY")}</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -733,4 +862,30 @@ const styles = StyleSheet.create({
   toolDivider: { width: StyleSheet.hairlineWidth, height: 26, marginHorizontal: 6 },
   menuRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14 },
   menuText: { fontSize: 15, fontWeight: "500" },
+  shareCardWrap: { position: "absolute", left: -10000, top: 0, width: 360 },
+  shareCard: { width: 360, padding: 24 },
+  shareCardHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+  shareLogo: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  shareBrand: { fontSize: 14, fontWeight: "700" },
+  shareTitle: { fontSize: 22, fontWeight: "800", marginBottom: 12 },
+  shareBody: { fontSize: 16, lineHeight: 24 },
+  shareCheckRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 8 },
+  shareCheckText: { flex: 1, fontSize: 16, lineHeight: 22 },
+  shareFooter: { fontSize: 12, marginTop: 20 },
+  sharingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    zIndex: 2000,
+  },
+  sharingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  sharingText: { fontSize: 15, fontWeight: "600" },
 });

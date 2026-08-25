@@ -19,7 +19,12 @@ export default function LabelView() {
   const [notes, setNotes] = useState<NoteListItem[]>([]);
 
   const load = useCallback(() => {
-    listNotes({ filter: "all", labelId: id, sort: settings.sort }).then(setNotes);
+    listNotes({ filter: "all", labelId: id, sort: settings.sort })
+      .then(setNotes)
+      .catch((e) => {
+        console.warn("[LabelView] failed to load notes", e);
+        setNotes([]);
+      });
   }, [id, settings.sort]);
 
   useFocusEffect(

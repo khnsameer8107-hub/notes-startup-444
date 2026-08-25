@@ -63,17 +63,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      await getDb();
-      const stored = await storage.getItem<Settings>(
-        SETTINGS_KEY,
-        DEFAULT_SETTINGS,
-      );
-      if (stored) setSettings({ ...DEFAULT_SETTINGS, ...stored });
+      try {
+        await getDb();
+      } catch (e) {
+        // DB failed to open — app stays usable; features degrade gracefully.
+        console.warn("[AppContext] database init failed", e);
+      }
+      try {
+        const stored = await storage.getItem<Settings>(
+          SETTINGS_KEY,
+          DEFAULT_SETTINGS,
+        );
+        if (stored) setSettings({ ...DEFAULT_SETTINGS, ...stored });
+      } catch (e) {
+        console.warn("[AppContext] settings load failed", e);
+      }
       try {
         await purgeOldTrash();
       } catch {
         // ignore
       }
+      // Always mark ready so the UI never hangs on the splash screen.
       setReady(true);
     })();
   }, []);

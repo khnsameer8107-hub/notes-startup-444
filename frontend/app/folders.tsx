@@ -36,33 +36,55 @@ export default function Folders() {
   const [deleting, setDeleting] = useState<Folder | null>(null);
 
   const load = useCallback(() => {
-    listFolders().then(setFolders);
+    listFolders()
+      .then(setFolders)
+      .catch((e) => {
+        console.warn("[Folders] load failed", e);
+        setFolders([]);
+      });
   }, []);
   useFocusEffect(load);
 
   const add = async () => {
     const name = newName.trim();
     if (!name) return;
-    await createFolder(name);
-    setNewName("");
-    load();
-    toast.show("Folder created", "success");
+    try {
+      await createFolder(name);
+      setNewName("");
+      load();
+      toast.show("Folder created", "success");
+    } catch (e) {
+      console.warn("[Folders] create failed", e);
+      toast.show("Couldn't create folder", "error");
+    }
   };
 
   const saveRename = async () => {
     if (!editing) return;
     const name = editName.trim();
-    if (name) await renameFolder(editing.id, name);
-    setEditing(null);
-    load();
+    try {
+      if (name) await renameFolder(editing.id, name);
+      setEditing(null);
+      load();
+    } catch (e) {
+      console.warn("[Folders] rename failed", e);
+      setEditing(null);
+      toast.show("Couldn't rename folder", "error");
+    }
   };
 
   const confirmDelete = async () => {
     if (!deleting) return;
-    await deleteFolder(deleting.id);
-    setDeleting(null);
-    load();
-    toast.show("Folder deleted", "success");
+    try {
+      await deleteFolder(deleting.id);
+      setDeleting(null);
+      load();
+      toast.show("Folder deleted", "success");
+    } catch (e) {
+      console.warn("[Folders] delete failed", e);
+      setDeleting(null);
+      toast.show("Couldn't delete folder", "error");
+    }
   };
 
   return (

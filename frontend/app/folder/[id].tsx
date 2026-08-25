@@ -19,7 +19,12 @@ export default function FolderView() {
   const [notes, setNotes] = useState<NoteListItem[]>([]);
 
   const load = useCallback(() => {
-    listNotes({ filter: "all", folderId: id, sort: settings.sort }).then(setNotes);
+    listNotes({ filter: "all", folderId: id, sort: settings.sort })
+      .then(setNotes)
+      .catch((e) => {
+        console.warn("[FolderView] failed to load notes", e);
+        setNotes([]);
+      });
   }, [id, settings.sort]);
 
   useFocusEffect(

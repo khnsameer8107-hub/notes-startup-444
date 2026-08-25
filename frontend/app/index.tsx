@@ -85,9 +85,15 @@ export default function Home() {
   }, [rawSearch]);
 
   const load = useCallback(async () => {
-    const rows = await listNotes({ filter, search, sort: settings.sort });
-    setNotes(rows);
-  }, [filter, search, settings.sort]);
+    try {
+      const rows = await listNotes({ filter, search, sort: settings.sort });
+      setNotes(rows);
+    } catch (e) {
+      console.warn("[Home] failed to load notes", e);
+      setNotes([]);
+      toast.show("Couldn't load notes. Pull down to retry.", "error");
+    }
+  }, [filter, search, settings.sort, toast]);
 
   useFocusEffect(
     useCallback(() => {
